@@ -87,7 +87,7 @@ export default function App() {
   };
 
   return (
-    <SidebarProvider>
+    <SidebarProvider className="h-svh !min-h-0">
       <AppSidebar
         conversations={convos.conversations}
         loading={convos.loading}
