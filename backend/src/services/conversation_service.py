@@ -11,6 +11,7 @@ from qdrant_client.models import FieldCondition, Filter, MatchValue
 from core.config import settings
 from models.schemas import Conversation
 from repositories.conversation_repo import ConversationRepo
+from repositories.file_repo import FileRepo
 from repositories.message_repo import MessageRepo
 
 logger = logging.getLogger(__name__)
@@ -22,10 +23,12 @@ class ConversationService:
         conversation_repo: ConversationRepo,
         message_repo: MessageRepo,
         qdrant_client: AsyncQdrantClient,
+        file_repo: FileRepo,
     ) -> None:
         self._conversations = conversation_repo
         self._messages = message_repo
         self._qdrant = qdrant_client
+        self._file_repo = file_repo
 
     async def create(self, user_id: str) -> Conversation:
         return await self._conversations.create(user_id=user_id)
@@ -43,6 +46,7 @@ class ConversationService:
     async def delete(self, conversation_id: str) -> None:
         """Delete a conversation and all associated data across stores."""
         await self._messages.delete_by_conversation(conversation_id)
+        await self._file_repo.delete_by_conversation(conversation_id)
         await self._cleanup_vectors(conversation_id)
         self._cleanup_files(conversation_id)
         await self._conversations.delete(conversation_id)
@@ -50,6 +54,7 @@ class ConversationService:
     async def clear(self, conversation_id: str) -> None:
         """Remove all messages and associated data, but keep the conversation."""
         await self._messages.delete_by_conversation(conversation_id)
+        await self._file_repo.delete_by_conversation(conversation_id)
         await self._cleanup_vectors(conversation_id)
         self._cleanup_files(conversation_id)
 
