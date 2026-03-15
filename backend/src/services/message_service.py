@@ -6,6 +6,7 @@ from models.schemas import Message
 from repositories.conversation_repo import ConversationRepo
 from repositories.message_repo import MessageRepo
 from services.bot_service import BotService
+from services.file_service import FileService
 
 MAX_TITLE_LENGTH = 80
 
@@ -16,10 +17,12 @@ class MessageService:
         message_repo: MessageRepo,
         conversation_repo: ConversationRepo,
         bot_service: BotService,
+        file_service: FileService,
     ) -> None:
         self._messages = message_repo
         self._conversations = conversation_repo
         self._bot = bot_service
+        self._files = file_service
 
     async def send(
         self,
@@ -28,10 +31,15 @@ class MessageService:
         file_ids: list[str] | None = None,
     ) -> tuple[Message, Message]:
         """Persist a user message, generate a bot reply, and return both."""
+        files = []
+        if file_ids:
+            files = await self._files.resolve_file_ids(file_ids)
+
         user_msg = await self._messages.create(
             conversation_id=conversation_id,
             role="user",
             content=content,
+            files=files,
         )
 
         await self._maybe_set_title(conversation_id, content)
