@@ -6,12 +6,13 @@ MongoDB interactions for conversations.
 from datetime import datetime, timezone
 
 from bson import ObjectId
+from pymongo.asynchronous.database import AsyncDatabase
 
 from models.schemas import Conversation
 
 
 class ConversationRepo:
-    def __init__(self, db) -> None:
+    def __init__(self, db: AsyncDatabase) -> None:
         self._col = db.conversations
 
     async def create(self, user_id: str, title: str | None = None) -> Conversation:

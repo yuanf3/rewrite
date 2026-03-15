@@ -1,6 +1,7 @@
 """Pydantic models for API requests, responses, and internal domain objects."""
 
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -41,7 +42,6 @@ class FileRef(BaseModel):
     file_id: str
     filename: str
     content_type: str
-    status: str = "ready"
 
 
 # ---------------------------------------------------------------------------
@@ -64,13 +64,6 @@ class Conversation(MongoModel):
     updated_at: datetime
 
 
-class ConversationList(BaseModel):
-    """Paginated list of conversations."""
-
-    items: list[Conversation]
-    has_more: bool
-
-
 # ---------------------------------------------------------------------------
 # Message
 # ---------------------------------------------------------------------------
@@ -88,24 +81,10 @@ class Message(MongoModel):
     """Message as returned to the client."""
 
     conversation_id: str
-    role: str  # "user" | "assistant"
+    role: Literal["user", "assistant"]
     content: str
     files: list[FileRef] = Field(default_factory=list)
     created_at: datetime
-
-
-class MessagePair(BaseModel):
-    """Response from the send-message endpoint."""
-
-    user_message: Message
-    assistant_message: Message
-
-
-class MessageList(BaseModel):
-    """Paginated list of messages."""
-
-    items: list[Message]
-    has_more: bool
 
 
 # ---------------------------------------------------------------------------

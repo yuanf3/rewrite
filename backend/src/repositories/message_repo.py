@@ -5,11 +5,13 @@ MongoDB interactions for messages.
 
 from datetime import datetime, timezone
 
-from src.models.schemas import FileRef, Message
+from pymongo.asynchronous.database import AsyncDatabase
+
+from models.schemas import FileRef, Message
 
 
 class MessageRepo:
-    def __init__(self, db) -> None:
+    def __init__(self, db: AsyncDatabase) -> None:
         self._col = db.messages
 
     async def create(
@@ -53,7 +55,3 @@ class MessageRepo:
         """Delete all messages belonging to a conversation. Returns deleted count."""
         result = await self._col.delete_many({"conversation_id": conversation_id})
         return result.deleted_count
-
-    async def count_by_conversation(self, conversation_id: str) -> int:
-        """Return the total message count for a conversation."""
-        return await self._col.count_documents({"conversation_id": conversation_id})
