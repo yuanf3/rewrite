@@ -8,10 +8,12 @@ import db.qdrant
 from core.config import settings
 from core.logging import logger
 from repositories.conversation_repo import ConversationRepo
+from repositories.file_repo import FileRepo
 from repositories.message_repo import MessageRepo
 from routes import conversations, files, messages
 from services.bot_service import BotService
 from services.conversation_service import ConversationService
+from services.file_service import FileService
 from services.message_service import MessageService
 
 
@@ -27,14 +29,23 @@ async def lifespan(app: FastAPI):
 
     conversation_repo = ConversationRepo(mongo)
     message_repo = MessageRepo(mongo)
+    file_repo = FileRepo(mongo)
     bot_service = BotService()
 
+    # Load embedding model (downloads on first run)
+    from fastembed import TextEmbedding
+
+    embedding_model = TextEmbedding(settings.embedding_model)
+
+    file_service = FileService(file_repo, qdrant, embedding_model)
+
     app.state.conversation_service = ConversationService(
-        conversation_repo, message_repo, qdrant
+        conversation_repo, message_repo, qdrant, file_repo
     )
     app.state.message_service = MessageService(
-        message_repo, conversation_repo, bot_service
+        message_repo, conversation_repo, bot_service, file_service
     )
+    app.state.file_service = file_service
 
     yield
 

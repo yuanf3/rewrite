@@ -3,6 +3,7 @@
 from fastapi import Request
 
 from services.conversation_service import ConversationService
+from services.file_service import FileService
 from services.message_service import MessageService
 
 
@@ -12,3 +13,7 @@ def get_conversation_service(request: Request) -> ConversationService:
 
 def get_message_service(request: Request) -> MessageService:
     return request.app.state.message_service
+
+
+def get_file_service(request: Request) -> FileService:
+    return request.app.state.file_service
