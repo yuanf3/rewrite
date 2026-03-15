@@ -15,14 +15,20 @@ import { toast } from "sonner";
 
 export default function App() {
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [focusTrigger, setFocusTrigger] = useState(0);
   const convos = useConversations();
   const msgs = useMessages(activeId);
 
-  const handleNew = () => setActiveId(null);
+  const handleNew = () => {
+    setActiveId(null);
+    setFocusTrigger((n) => n + 1);
+  };
 
   const handleDelete = async (id: string) => {
     await convos.remove(id);
-    if (activeId === id) setActiveId(null);
+    if (activeId === id) {
+      handleNew();
+    }
   };
 
   const handleClear = async (id: string) => {
@@ -69,8 +75,14 @@ export default function App() {
         onClear={handleClear}
       />
       <SidebarInset>
-        <header className="flex h-12 items-center border-b px-4">
+        <header className="flex h-12 items-center gap-2 border-b px-4">
           <SidebarTrigger />
+          {activeId && (
+            <h1 className="truncate font-semibold">
+              {convos.conversations.find((c) => c.id === activeId)?.title ??
+                "Conversation"}
+            </h1>
+          )}
         </header>
         <div className="flex flex-1 flex-col overflow-hidden">
           {activeId ? (
@@ -78,7 +90,11 @@ export default function App() {
           ) : (
             <WelcomeScreen />
           )}
-          <MessageInput onSend={handleSend} disabled={msgs.sending} />
+          <MessageInput
+            onSend={handleSend}
+            disabled={msgs.sending}
+            focusTrigger={focusTrigger}
+          />
         </div>
       </SidebarInset>
       <Toaster />

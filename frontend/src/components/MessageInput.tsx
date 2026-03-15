@@ -1,16 +1,23 @@
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { SendHorizonal } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export function MessageInput({
   onSend,
   disabled,
+  focusTrigger,
 }: {
   onSend: (content: string) => void;
   disabled: boolean;
+  focusTrigger?: number;
 }) {
   const [value, setValue] = useState("");
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    textareaRef.current?.focus();
+  }, [focusTrigger]);
 
   const handleSubmit = () => {
     const trimmed = value.trim();
@@ -30,6 +37,7 @@ export function MessageInput({
     <div className="border-t p-4">
       <div className="flex gap-2">
         <Textarea
+          ref={textareaRef}
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
