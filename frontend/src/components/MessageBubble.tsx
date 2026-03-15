@@ -1,4 +1,6 @@
+import { Badge } from "@/components/ui/badge";
 import type { Message } from "@/types";
+import { Paperclip } from "lucide-react";
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
@@ -15,6 +17,16 @@ export function MessageBubble({ message }: { message: Message }) {
         }
       >
         <p className="break-words whitespace-pre-wrap">{message.content}</p>
+        {message.files.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {message.files.map((f) => (
+              <Badge key={f.file_id} variant="outline" className="gap-1 text-xs">
+                <Paperclip className="size-3" />
+                {f.filename}
+              </Badge>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
