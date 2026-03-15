@@ -1,0 +1,98 @@
+"""Pydantic models for API requests, responses, and internal domain objects."""
+
+from datetime import datetime
+
+from pydantic import BaseModel, Field
+
+# ---------------------------------------------------------------------------
+# Embedded / shared
+# ---------------------------------------------------------------------------
+
+
+class FileRef(BaseModel):
+    """Reference to an uploaded file, embedded on message docs."""
+
+    file_id: str
+    filename: str
+    content_type: str
+    status: str = "ready"
+
+
+# ---------------------------------------------------------------------------
+# Conversation
+# ---------------------------------------------------------------------------
+
+
+class ConversationCreate(BaseModel):
+    """POST /api/conversations request body."""
+
+    user_id: str
+
+
+class Conversation(BaseModel):
+    """Conversation as returned to the client."""
+
+    id: str
+    user_id: str
+    title: str | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
+class ConversationList(BaseModel):
+    """Paginated list of conversations."""
+
+    items: list[Conversation]
+    has_more: bool
+
+
+# ---------------------------------------------------------------------------
+# Message
+# ---------------------------------------------------------------------------
+
+
+class MessageCreate(BaseModel):
+    """POST /api/conversations/{id}/messages request body."""
+
+    content: str
+    user_id: str
+    file_ids: list[str] | None = None
+
+
+class Message(BaseModel):
+    """Message as returned to the client."""
+
+    id: str
+    conversation_id: str
+    role: str  # "user" | "assistant"
+    content: str
+    files: list[FileRef] = Field(default_factory=list)
+    created_at: datetime
+
+
+class MessagePair(BaseModel):
+    """Response from the send-message endpoint."""
+
+    user_message: Message
+    assistant_message: Message
+
+
+class MessageList(BaseModel):
+    """Paginated list of messages."""
+
+    items: list[Message]
+    has_more: bool
+
+
+# ---------------------------------------------------------------------------
+# File upload
+# ---------------------------------------------------------------------------
+
+
+class FileUploadResponse(BaseModel):
+    """POST /api/conversations/{id}/files response."""
+
+    file_id: str
+    filename: str
+    content_type: str
+    status: str  # "ready" | "failed"
