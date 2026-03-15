@@ -8,18 +8,6 @@ from datetime import datetime, timezone
 from src.models.schemas import FileRef, Message
 
 
-def _to_model(doc: dict) -> Message:
-    """Map a raw MongoDB document to a Message schema."""
-    return Message(
-        id=str(doc["_id"]),
-        conversation_id=doc["conversation_id"],
-        role=doc["role"],
-        content=doc["content"],
-        files=[FileRef(**f) for f in doc.get("files", [])],
-        created_at=doc["created_at"],
-    )
-
-
 class MessageRepo:
     def __init__(self, db) -> None:
         self._col = db.messages
@@ -41,7 +29,7 @@ class MessageRepo:
         }
         result = await self._col.insert_one(doc)
         doc["_id"] = result.inserted_id
-        return _to_model(doc)
+        return Message(**doc)
 
     async def find_by_conversation(
         self,
@@ -59,7 +47,7 @@ class MessageRepo:
             query["created_at"] = {"$lt": before}
 
         cursor = self._col.find(query).sort("created_at", 1).limit(limit)
-        return [_to_model(doc) async for doc in cursor]
+        return [Message(**doc) async for doc in cursor]
 
     async def delete_by_conversation(self, conversation_id: str) -> int:
         """Delete all messages belonging to a conversation. Returns deleted count."""

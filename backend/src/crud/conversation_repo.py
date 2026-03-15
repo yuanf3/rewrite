@@ -1,4 +1,4 @@
-"""Repository for the `conversations` MongoDB collection
+"""Repository for the `conversations` MongoDB collection.
 
 MongoDB interactions for conversations.
 """
@@ -8,17 +8,6 @@ from datetime import datetime, timezone
 from bson import ObjectId
 
 from models.schemas import Conversation
-
-
-def _to_model(doc: dict) -> Conversation:
-    """Map a raw MongoDB document to a Conversation schema."""
-    return Conversation(
-        id=str(doc["_id"]),
-        user_id=doc["user_id"],
-        title=doc.get("title"),
-        created_at=doc["created_at"],
-        updated_at=doc["updated_at"],
-    )
 
 
 class ConversationRepo:
@@ -36,7 +25,7 @@ class ConversationRepo:
         }
         result = await self._col.insert_one(doc)
         doc["_id"] = result.inserted_id
-        return _to_model(doc)
+        return Conversation(**doc)
 
     async def find_by_user(
         self,
@@ -50,12 +39,12 @@ class ConversationRepo:
             query["updated_at"] = {"$lt": before}
 
         cursor = self._col.find(query).sort("updated_at", -1).limit(limit)
-        return [_to_model(doc) async for doc in cursor]
+        return [Conversation(**doc) async for doc in cursor]
 
     async def get(self, conversation_id: str) -> Conversation | None:
         """Find a conversation by ID, or return None."""
         doc = await self._col.find_one({"_id": ObjectId(conversation_id)})
-        return _to_model(doc) if doc else None
+        return Conversation(**doc) if doc else None
 
     async def delete(self, conversation_id: str) -> bool:
         """Delete a conversation. Returns True if a document was removed."""

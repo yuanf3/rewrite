@@ -2,7 +2,33 @@
 
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
+
+# ---------------------------------------------------------------------------
+# Base
+# ---------------------------------------------------------------------------
+
+
+class MongoModel(BaseModel):
+    """Base for models that map directly from MongoDB documents.
+
+    Reads ``_id`` from the raw document via a field alias and converts
+    the ``ObjectId`` to a plain string automatically.
+
+    Usage:
+        doc = await collection.find_one(...)
+        model = Conversation(**doc)
+    """
+
+    id: str = Field(alias="_id")
+
+    model_config = {"populate_by_name": True}
+
+    @field_validator("id", mode="before")
+    @classmethod
+    def convert_objectid(cls, v):
+        return str(v)
+
 
 # ---------------------------------------------------------------------------
 # Embedded / shared
@@ -29,10 +55,9 @@ class ConversationCreate(BaseModel):
     user_id: str
 
 
-class Conversation(BaseModel):
+class Conversation(MongoModel):
     """Conversation as returned to the client."""
 
-    id: str
     user_id: str
     title: str | None = None
     created_at: datetime
@@ -59,10 +84,9 @@ class MessageCreate(BaseModel):
     file_ids: list[str] | None = None
 
 
-class Message(BaseModel):
+class Message(MongoModel):
     """Message as returned to the client."""
 
-    id: str
     conversation_id: str
     role: str  # "user" | "assistant"
     content: str
