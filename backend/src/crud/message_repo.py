@@ -1,28 +1,71 @@
+"""Repository for the `messages` MongoDB collection
+
+MongoDB interactions for messages.
+"""
+
 from datetime import datetime, timezone
+
+from src.models.schemas import FileRef, Message
+
+
+def _to_model(doc: dict) -> Message:
+    """Map a raw MongoDB document to a Message schema."""
+    return Message(
+        id=str(doc["_id"]),
+        conversation_id=doc["conversation_id"],
+        role=doc["role"],
+        content=doc["content"],
+        files=[FileRef(**f) for f in doc.get("files", [])],
+        created_at=doc["created_at"],
+    )
 
 
 class MessageRepo:
-    def __init__(self, db):
-        self.collection = db.messages
+    def __init__(self, db) -> None:
+        self._col = db.messages
 
-    async def create(self, conversation_id, role, content, files=None):
+    async def create(
+        self,
+        conversation_id: str,
+        role: str,
+        content: str,
+        files: list[FileRef] | None = None,
+    ) -> Message:
+        """Insert a new message and return it."""
         doc = {
             "conversation_id": conversation_id,
             "role": role,
             "content": content,
-            "files": files or [],
+            "files": [f.model_dump() for f in (files or [])],
             "created_at": datetime.now(timezone.utc),
         }
-        result = await self.collection.insert_one(doc)
+        result = await self._col.insert_one(doc)
         doc["_id"] = result.inserted_id
-        return doc
+        return _to_model(doc)
 
-    async def find_by_conversation(self, conversation_id, before=None, limit=100):
-        query = {"conversation_id": conversation_id}
-        if before:
+    async def find_by_conversation(
+        self,
+        conversation_id: str,
+        before: datetime | None = None,
+        limit: int = 100,
+    ) -> list[Message]:
+        """Return messages for a conversation, oldest first (cursor-based pagination).
+
+        The `before` cursor paginates backwards from a given timestamp so
+        the client can implement "load earlier messages".
+        """
+        query: dict = {"conversation_id": conversation_id}
+        if before is not None:
             query["created_at"] = {"$lt": before}
-        cursor = self.collection.find(query).sort("created_at", 1).limit(limit)
-        return await cursor.to_list()
 
-    async def delete_by_conversation(self, conversation_id):
-        await self.collection.delete_many({"conversation_id": conversation_id})
+        cursor = self._col.find(query).sort("created_at", 1).limit(limit)
+        return [_to_model(doc) async for doc in cursor]
+
+    async def delete_by_conversation(self, conversation_id: str) -> int:
+        """Delete all messages belonging to a conversation. Returns deleted count."""
+        result = await self._col.delete_many({"conversation_id": conversation_id})
+        return result.deleted_count
+
+    async def count_by_conversation(self, conversation_id: str) -> int:
+        """Return the total message count for a conversation."""
+        return await self._col.count_documents({"conversation_id": conversation_id})
