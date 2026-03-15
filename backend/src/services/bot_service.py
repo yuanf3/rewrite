@@ -1,5 +1,7 @@
 """Stub bot service — placeholder until real LLM integration (phase 5)."""
 
+import asyncio
+
 from models.schemas import Message
 
 
@@ -15,4 +17,5 @@ class BotService:
         query the Qdrant vector store (scoped to conversation_id) for RAG
         retrieval. For now, just echo back a confirmation.
         """
+        await asyncio.sleep(1)
         return "This is a placeholder response."

@@ -110,7 +110,11 @@ export default function App() {
         </header>
         <div className="flex flex-1 flex-col overflow-hidden">
           {activeId ? (
-            <ChatArea messages={msgs.messages} loading={msgs.loading} />
+            <ChatArea
+              messages={msgs.messages}
+              loading={msgs.loading}
+              sending={msgs.sending}
+            />
           ) : (
             <WelcomeScreen />
           )}

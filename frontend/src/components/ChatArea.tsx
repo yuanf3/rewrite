@@ -3,13 +3,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { Message } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
+import { TypingIndicator } from "./TypingIndicator";
 
 export function ChatArea({
   messages,
   loading,
+  sending,
 }: {
   messages: Message[];
   loading: boolean;
+  sending: boolean;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -40,6 +43,7 @@ export function ChatArea({
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
+        {sending && <TypingIndicator />}
         <div ref={bottomRef} />
       </div>
     </ScrollArea>
