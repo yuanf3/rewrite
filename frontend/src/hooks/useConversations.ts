@@ -38,6 +38,11 @@ export function useConversations() {
     await api.clearConversation(id);
   }, []);
 
+  const removeAll = useCallback(async () => {
+    await api.deleteAllConversations(USER_ID);
+    setConversations([]);
+  }, []);
+
   const updateConversation = useCallback(
     (id: string, updates: Partial<Conversation>) => {
       setConversations((prev) =>
@@ -52,6 +57,7 @@ export function useConversations() {
     loading,
     create,
     remove,
+    removeAll,
     clear,
     refresh,
     updateConversation,

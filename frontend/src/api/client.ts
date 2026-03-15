@@ -18,7 +18,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 export async function createConversation(
-  userId: string,
+  userId: string
 ): Promise<Conversation> {
   const res = await fetch(`${BASE}/conversations`, {
     method: "POST",
@@ -29,10 +29,17 @@ export async function createConversation(
 }
 
 export async function listConversations(
-  userId: string,
+  userId: string
 ): Promise<Conversation[]> {
   const res = await fetch(`${BASE}/conversations?user_id=${userId}`);
   return handleResponse(res);
+}
+
+export async function deleteAllConversations(userId: string): Promise<void> {
+  const res = await fetch(`${BASE}/conversations?user_id=${userId}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to delete all conversations");
 }
 
 export async function deleteConversation(id: string): Promise<void> {
@@ -49,39 +56,32 @@ export async function clearConversation(id: string): Promise<void> {
   if (!res.ok) throw new Error("Failed to clear conversation");
 }
 
-export async function getMessages(
-  conversationId: string,
-): Promise<Message[]> {
-  const res = await fetch(
-    `${BASE}/conversations/${conversationId}/messages`,
-  );
+export async function getMessages(conversationId: string): Promise<Message[]> {
+  const res = await fetch(`${BASE}/conversations/${conversationId}/messages`);
   return handleResponse(res);
 }
 
 export async function sendMessage(
   conversationId: string,
-  body: { content: string; user_id: string; file_ids?: string[] },
+  body: { content: string; user_id: string; file_ids?: string[] }
 ): Promise<MessagePair> {
-  const res = await fetch(
-    `${BASE}/conversations/${conversationId}/messages`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    },
-  );
+  const res = await fetch(`${BASE}/conversations/${conversationId}/messages`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
   return handleResponse(res);
 }
 
 export async function uploadFile(
   conversationId: string,
-  file: File,
+  file: File
 ): Promise<FileUploadResponse> {
   const form = new FormData();
   form.append("file", file);
-  const res = await fetch(
-    `${BASE}/conversations/${conversationId}/files`,
-    { method: "POST", body: form },
-  );
+  const res = await fetch(`${BASE}/conversations/${conversationId}/files`, {
+    method: "POST",
+    body: form,
+  });
   return handleResponse(res);
 }

@@ -58,6 +58,17 @@ class ConversationService:
         await self._cleanup_vectors(conversation_id)
         self._cleanup_files(conversation_id)
 
+    async def delete_all_for_user(self, user_id: str) -> int:
+        """Delete every conversation (and associated data) for a user."""
+        conv_ids = await self._conversations.find_ids_by_user(user_id)
+        for cid in conv_ids:
+            await self._messages.delete_by_conversation(cid)
+            await self._file_repo.delete_by_conversation(cid)
+            await self._cleanup_vectors(cid)
+            self._cleanup_files(cid)
+        await self._conversations.delete_by_user(user_id)
+        return len(conv_ids)
+
     # ------------------------------------------------------------------
     # Best-effort cleanup helpers — log and continue on failure
     # ------------------------------------------------------------------

@@ -1,7 +1,17 @@
 import { Button } from "@/components/ui/button";
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
   Sidebar,
   SidebarContent,
+  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarGroupLabel,
@@ -12,7 +22,7 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import type { Conversation } from "@/types";
-import { Eraser, Plus, Trash2 } from "lucide-react";
+import { DatabaseZap, Eraser, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function AppSidebar({
@@ -23,6 +33,7 @@ export function AppSidebar({
   onNew,
   onDelete,
   onClear,
+  onDeleteAll,
 }: {
   conversations: Conversation[];
   loading: boolean;
@@ -31,10 +42,11 @@ export function AppSidebar({
   onNew: () => void;
   onDelete: (id: string) => void;
   onClear: (id: string) => void;
+  onDeleteAll: () => Promise<void>;
 }) {
   return (
     <Sidebar>
-      <SidebarHeader>
+      <SidebarHeader className="border-b">
         <Button onClick={onNew} variant="outline">
           <Plus />
           New conversation
@@ -52,16 +64,17 @@ export function AppSidebar({
                     </SidebarMenuItem>
                   ))
                 : conversations.map((conv) => (
-                    <SidebarMenuItem key={conv.id}>
+                    <SidebarMenuItem key={conv.id} className="group/item">
                       <SidebarMenuButton
                         isActive={conv.id === activeId}
                         onClick={() => onSelect(conv.id)}
+                        className="pr-14"
                       >
                         <span className="truncate">
                           {conv.title ?? "New conversation"}
                         </span>
                       </SidebarMenuButton>
-                      <div className="absolute top-1.5 right-1 flex gap-0.5 opacity-0 hover:opacity-100">
+                      <div className="absolute top-1.5 right-1 flex gap-0.5 opacity-0 group-hover/item:opacity-100">
                         <Button
                           variant="secondary"
                           size="icon"
@@ -101,6 +114,46 @@ export function AppSidebar({
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter className="border-t">
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button
+              variant="destructive"
+              className="w-full text-destructive"
+              disabled={loading || conversations.length === 0}
+            >
+              <DatabaseZap className="size-4" />
+              Clear database
+            </Button>
+          </DialogTrigger>
+          <DialogContent>
+            <DialogTitle>Clear database</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all conversations, message history
+              and files. This action cannot be undone.
+            </DialogDescription>
+            <DialogFooter>
+              <DialogClose asChild>
+                <Button variant="outline">Cancel</Button>
+              </DialogClose>
+              <DialogClose asChild>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    toast.promise(onDeleteAll, {
+                      loading: "Clearing database...",
+                      success: "All conversations deleted",
+                      error: "Failed to clear database",
+                    });
+                  }}
+                >
+                  Delete all
+                </Button>
+              </DialogClose>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </SidebarFooter>
     </Sidebar>
   );
 }

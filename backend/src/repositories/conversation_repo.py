@@ -52,6 +52,16 @@ class ConversationRepo:
         result = await self._col.delete_one({"_id": ObjectId(conversation_id)})
         return result.deleted_count > 0
 
+    async def find_ids_by_user(self, user_id: str) -> list[str]:
+        """Return all conversation IDs for a user."""
+        cursor = self._col.find({"user_id": user_id}, {"_id": 1})
+        return [str(doc["_id"]) async for doc in cursor]
+
+    async def delete_by_user(self, user_id: str) -> int:
+        """Delete all conversations for a user. Returns count deleted."""
+        result = await self._col.delete_many({"user_id": user_id})
+        return result.deleted_count
+
     async def touch(self, conversation_id: str) -> None:
         """Bump updated_at to now."""
         await self._col.update_one(

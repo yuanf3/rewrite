@@ -1,3 +1,4 @@
+import { uploadFile } from "@/api/client";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { MessageInput } from "@/components/MessageInput";
@@ -10,7 +11,6 @@ import { Toaster } from "@/components/ui/sonner";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { useConversations } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
-import { uploadFile } from "@/api/client";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -30,6 +30,11 @@ export default function App() {
     if (activeId === id) {
       handleNew();
     }
+  };
+
+  const handleDeleteAll = async () => {
+    await convos.removeAll();
+    handleNew();
   };
 
   const handleClear = async (id: string) => {
@@ -54,7 +59,7 @@ export default function App() {
       let fileIds: string[] | undefined;
       if (files.length > 0) {
         const results = await Promise.all(
-          files.map((f) => uploadFile(convId!, f)),
+          files.map((f) => uploadFile(convId!, f))
         );
         const readyIds = results
           .filter((r) => r.status === "ready")
@@ -76,7 +81,7 @@ export default function App() {
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to send message",
+        err instanceof Error ? err.message : "Failed to send message"
       );
     }
   };
@@ -91,6 +96,7 @@ export default function App() {
         onNew={handleNew}
         onDelete={handleDelete}
         onClear={handleClear}
+        onDeleteAll={handleDeleteAll}
       />
       <SidebarInset>
         <header className="flex h-12 items-center gap-2 border-b px-4">

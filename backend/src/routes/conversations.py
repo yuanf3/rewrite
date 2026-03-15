@@ -29,6 +29,14 @@ async def list_conversations(
     return await service.list_for_user(user_id, before=before, limit=limit)
 
 
+@router.delete("", status_code=204)
+async def delete_all_conversations(
+    user_id: str,
+    service: ConversationService = Depends(get_conversation_service),
+):
+    await service.delete_all_for_user(user_id)
+
+
 @router.delete("/{conversation_id}", status_code=204)
 async def delete_conversation(
     conversation_id: str,
