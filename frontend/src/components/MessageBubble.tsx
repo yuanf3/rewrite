@@ -1,13 +1,24 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import type { Message } from "@/types";
-import { Paperclip } from "lucide-react";
+import { Check, Copy, Paperclip } from "lucide-react";
+import { useRef, useState } from "react";
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
+  const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(message.content);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setCopied(true);
+    timerRef.current = setTimeout(() => setCopied(false), 1500);
+  };
 
   return (
     <div
-      className={`flex w-full min-w-0 ${isUser ? "justify-end" : "justify-start"}`}
+      className={`group/msg flex w-full min-w-0 flex-col ${isUser ? "items-end" : "items-start"}`}
     >
       <div
         className={
@@ -20,7 +31,11 @@ export function MessageBubble({ message }: { message: Message }) {
         {message.files.length > 0 && (
           <div className="mt-1.5 flex flex-wrap gap-1">
             {message.files.map((f) => (
-              <Badge key={f.file_id} variant="outline" className="gap-1 text-xs">
+              <Badge
+                key={f.file_id}
+                variant="secondary"
+                className="gap-1 text-xs"
+              >
                 <Paperclip className="size-3" />
                 {f.filename}
               </Badge>
@@ -28,6 +43,20 @@ export function MessageBubble({ message }: { message: Message }) {
           </div>
         )}
       </div>
+      {message.content && (
+        <Button
+          variant="ghost"
+          size="icon"
+          className={`size-6 group-hover/msg:opacity-100 ${isUser && "opacity-0"}`}
+          onClick={handleCopy}
+        >
+          {copied ? (
+            <Check className="size-3.5" />
+          ) : (
+            <Copy className="size-3.5" />
+          )}
+        </Button>
+      )}
     </div>
   );
 }

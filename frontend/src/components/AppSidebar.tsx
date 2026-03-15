@@ -74,7 +74,7 @@ export function AppSidebar({
                           {conv.title ?? "New conversation"}
                         </span>
                       </SidebarMenuButton>
-                      <div className="absolute top-1.5 right-1 flex gap-0.5 opacity-0 group-hover/item:opacity-100">
+                      <div className="absolute inset-y-0 right-1 flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100">
                         <Button
                           variant="secondary"
                           size="icon"

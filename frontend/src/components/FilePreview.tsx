@@ -13,7 +13,11 @@ export function FilePreview({
   return (
     <div className="flex flex-wrap gap-1.5 pb-2">
       {files.map((file, i) => (
-        <Badge key={i} variant="secondary" className="gap-1">
+        <Badge
+          key={`${file.name}-${file.size}-${file.lastModified}`} // Stable key
+          variant="secondary"
+          className="gap-1"
+        >
           {file.name}
           <button onClick={() => onRemove(i)}>
             <X className="size-3" />
