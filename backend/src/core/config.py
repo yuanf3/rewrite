@@ -33,7 +33,8 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
 
     # Embedding
-    embedding_model: str = ""
+    embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_batch_size: int = 64
     embedding_dimension: int = 384
 
 
