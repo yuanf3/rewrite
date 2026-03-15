@@ -21,7 +21,7 @@ class MongoModel(BaseModel):
         model = Conversation(**doc)
     """
 
-    id: str = Field(alias="_id")
+    id: str = Field(alias="_id", serialization_alias="id")
 
     model_config = {"populate_by_name": True}
 
@@ -85,6 +85,13 @@ class Message(MongoModel):
     content: str
     files: list[FileRef] = Field(default_factory=list)
     created_at: datetime
+
+
+class MessagePair(BaseModel):
+    """Response from the send-message endpoint."""
+
+    user_message: Message
+    assistant_message: Message
 
 
 # ---------------------------------------------------------------------------

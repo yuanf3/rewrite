@@ -2,11 +2,10 @@
 
 from datetime import datetime
 
-from services.bot_service import BotService
-
 from models.schemas import Message
 from repositories.conversation_repo import ConversationRepo
 from repositories.message_repo import MessageRepo
+from services.bot_service import BotService
 
 MAX_TITLE_LENGTH = 80
 
