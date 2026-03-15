@@ -13,6 +13,7 @@ from core.logging import logger
 async def lifespan(app: FastAPI):
     # Startup
     await db.mongo.connect()
+    await db.mongo.ensure_indexes()
     await db.qdrant.connect()
     yield
     # Shutdown
