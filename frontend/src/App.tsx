@@ -10,6 +10,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
 import { useConversations } from "@/hooks/useConversations";
 import { useMessages } from "@/hooks/useMessages";
+import { uploadFile } from "@/api/client";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -36,7 +37,7 @@ export default function App() {
     if (activeId === id) msgs.reset();
   };
 
-  const handleSend = async (content: string) => {
+  const handleSend = async (content: string, files: File[]) => {
     try {
       let convId = activeId;
 
@@ -49,7 +50,24 @@ export default function App() {
       // Track whether this is the first message (title not yet set)
       const isNew = !convos.conversations.find((c) => c.id === convId)?.title;
 
-      await msgs.send(convId, content);
+      // Upload files if any
+      let fileIds: string[] | undefined;
+      if (files.length > 0) {
+        const results = await Promise.all(
+          files.map((f) => uploadFile(convId!, f)),
+        );
+        const readyIds = results
+          .filter((r) => r.status === "ready")
+          .map((r) => r.file_id);
+        if (readyIds.length > 0) fileIds = readyIds;
+
+        const failed = results.filter((r) => r.status !== "ready");
+        if (failed.length > 0) {
+          toast.warning(`${failed.length} file(s) failed to process`);
+        }
+      }
+
+      await msgs.send(convId, content, fileIds);
 
       if (isNew) {
         convos.updateConversation(convId, {
@@ -58,7 +76,7 @@ export default function App() {
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to send message"
+        err instanceof Error ? err.message : "Failed to send message",
       );
     }
   };
