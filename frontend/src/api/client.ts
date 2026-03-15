@@ -1,5 +1,12 @@
 import type { Conversation, Message, MessagePair } from "@/types";
 
+export interface FileUploadResponse {
+  file_id: string;
+  filename: string;
+  content_type: string;
+  status: string;
+}
+
 const BASE = "/api";
 
 async function handleResponse<T>(res: Response): Promise<T> {
@@ -62,6 +69,19 @@ export async function sendMessage(
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     },
+  );
+  return handleResponse(res);
+}
+
+export async function uploadFile(
+  conversationId: string,
+  file: File,
+): Promise<FileUploadResponse> {
+  const form = new FormData();
+  form.append("file", file);
+  const res = await fetch(
+    `${BASE}/conversations/${conversationId}/files`,
+    { method: "POST", body: form },
   );
   return handleResponse(res);
 }
