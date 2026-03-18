@@ -8,12 +8,13 @@ import { ThemeProvider } from "@/components/theme-provider.tsx";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "@/index.css";
 
+const initOptions = { onLoad: "login-required", pkceMethod: "S256" };
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ReactKeycloakProvider
       authClient={keycloak}
-      initOptions={{ onLoad: "login-required" }}
-      onTokenExpired={() => keycloak.updateToken(30)}
+      initOptions={initOptions}
       LoadingComponent={
         <div className="flex h-screen items-center justify-center">
           Loading...
@@ -26,5 +27,5 @@ createRoot(document.getElementById("root")!).render(
         </TooltipProvider>
       </ThemeProvider>
     </ReactKeycloakProvider>
-  </StrictMode>,
+  </StrictMode>
 );
