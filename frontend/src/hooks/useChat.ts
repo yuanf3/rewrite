@@ -11,10 +11,11 @@ export function useChat() {
   const [messageMap, setMessageMap] = useState<Record<string, Message[]>>({});
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
-  const [sending, setSending] = useState(false);
+  const [sendingSet, setSendingSet] = useState<Set<string>>(new Set());
   const [focusTrigger, setFocusTrigger] = useState(0);
 
   const messages = activeId ? (messageMap[activeId] ?? []) : [];
+  const sending = activeId ? sendingSet.has(activeId) : false;
 
   function setMsgs(id: string, fn: (prev: Message[]) => Message[]) {
     setMessageMap((map) => ({ ...map, [id]: fn(map[id] ?? []) }));
@@ -57,8 +58,9 @@ export function useChat() {
     await api.deleteConversation(id);
     setConversations((prev) => prev.filter((c) => c.id !== id));
     setMessageMap((map) => {
-      const { [id]: _, ...rest } = map;
-      return rest;
+      const result = { ...map };
+      delete result[id];
+      return result;
     });
     if (activeId === id) selectConversation(null);
   }
@@ -99,10 +101,10 @@ export function useChat() {
         if (ready.length > 0) fileIds = ready;
         const failCount = results.length - ready.length;
         if (failCount > 0)
-          toast.warning(`${failCount} file(s) failed to process`);
+          toast.error(`${failCount} file(s) failed to process`);
       }
 
-      setSending(true);
+      setSendingSet((prev) => new Set(prev).add(convId!));
       const optimisticId = `optimistic-${crypto.randomUUID()}`;
       setMsgs(convId!, (prev) => [
         ...prev,
@@ -136,8 +138,13 @@ export function useChat() {
         }
       } catch {
         setMsgs(convId!, (prev) => prev.filter((m) => m.id !== optimisticId));
+        toast.error("Failed to send message");
       } finally {
-        setSending(false);
+        setSendingSet((prev) => {
+          const next = new Set(prev);
+          next.delete(convId!);
+          return next;
+        });
       }
     } catch (err) {
       toast.error(
@@ -153,6 +160,7 @@ export function useChat() {
     loadingConversations,
     loadingMessages,
     sending,
+    sendingIds: sendingSet,
     focusTrigger,
     selectConversation,
     deleteConversation,

@@ -24,6 +24,7 @@ export default function App() {
         onDelete={chat.deleteConversation}
         onClear={chat.clearConversation}
         onDeleteAll={chat.deleteAllConversations}
+        sendingIds={chat.sendingIds}
       />
       <SidebarInset>
         <header className="flex h-12 items-center gap-2 border-b px-4">

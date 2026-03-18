@@ -34,6 +34,7 @@ export function AppSidebar({
   onDelete,
   onClear,
   onDeleteAll,
+  sendingIds,
 }: {
   conversations: Conversation[];
   loading: boolean;
@@ -43,6 +44,7 @@ export function AppSidebar({
   onDelete: (id: string) => void;
   onClear: (id: string) => void;
   onDeleteAll: () => Promise<void>;
+  sendingIds: Set<string>;
 }) {
   return (
     <Sidebar>
@@ -73,6 +75,17 @@ export function AppSidebar({
                         <span className="truncate">
                           {conv.title ?? "New conversation"}
                         </span>
+                        {sendingIds.has(conv.id) && (
+                          <span className="ml-auto inline-flex h-full shrink-0 items-center gap-0.5">
+                            {[0, 1, 2].map((i) => (
+                              <span
+                                key={i}
+                                className="size-1 animate-bounce rounded-full bg-current"
+                                style={{ animationDelay: `${i * 0.15}s` }}
+                              />
+                            ))}
+                          </span>
+                        )}
                       </SidebarMenuButton>
                       <div className="absolute inset-y-0 right-1 flex items-center gap-0.5 opacity-0 group-hover/item:opacity-100">
                         <Button
@@ -84,7 +97,7 @@ export function AppSidebar({
                             toast.promise(async () => onClear(conv.id), {
                               loading: "Clearing...",
                               success: "Cleared",
-                              error: "Failed to clear",
+                              error: "Failed to clear conversation",
                             });
                           }}
                           title="Clear messages"
@@ -100,7 +113,7 @@ export function AppSidebar({
                             toast.promise(async () => onDelete(conv.id), {
                               loading: "Deleting...",
                               success: "Deleted",
-                              error: "Failed to delete",
+                              error: "Failed to delete conversation",
                             });
                           }}
                           title="Delete conversation"
