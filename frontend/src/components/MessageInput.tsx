@@ -56,7 +56,6 @@ export function MessageInput({
       <FilePreview files={files} onRemove={removeFile} />
       <div className="flex gap-2">
         <Button
-          variant="ghost"
           size="icon"
           onClick={() => fileInputRef.current?.click()}
           disabled={disabled}
@@ -86,6 +85,7 @@ export function MessageInput({
           onClick={handleSubmit}
           disabled={disabled || (!value.trim() && files.length === 0)}
           size="icon"
+          title="Send"
         >
           <SendHorizonal />
         </Button>

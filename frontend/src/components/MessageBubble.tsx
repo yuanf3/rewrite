@@ -49,6 +49,7 @@ export function MessageBubble({ message }: { message: Message }) {
           size="icon"
           className={`size-6 group-hover/msg:opacity-100 ${isUser && "opacity-0"}`}
           onClick={handleCopy}
+          title="Copy"
         >
           {copied ? (
             <Check className="size-3.5" />
