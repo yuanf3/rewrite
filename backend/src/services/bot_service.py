@@ -1,5 +1,6 @@
 """Bot service — LangGraph ReAct agent with RAG retrieval and tool calling."""
 
+import asyncio
 from datetime import UTC, datetime
 
 from fastembed import TextEmbedding
@@ -36,7 +37,7 @@ class BotService:
 
         async def retrieve_documents(query: str) -> str:
             """Search uploaded documents for relevant context using semantic similarity."""
-            vectors = list(embedding.embed([query]))
+            vectors = await asyncio.to_thread(lambda: list(embedding.embed([query])))
             results = await qdrant.query_points(
                 collection_name=collection,
                 query=vectors[0].tolist(),
@@ -58,8 +59,8 @@ class BotService:
         tools = [retrieve_documents, get_current_time]
         llm_with_tools = self._llm.bind_tools(tools)
 
-        def agent(state: MessagesState) -> dict:
-            return {"messages": [llm_with_tools.invoke(state["messages"])]}
+        async def agent(state: MessagesState) -> dict:
+            return {"messages": [await llm_with_tools.ainvoke(state["messages"])]}
 
         def should_continue(state: MessagesState) -> str:
             last = state["messages"][-1]
@@ -71,7 +72,9 @@ class BotService:
         graph.add_node("agent", agent)
         graph.add_node("tools", ToolNode(tools))
         graph.set_entry_point("agent")
-        graph.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
+        graph.add_conditional_edges(
+            "agent", should_continue, {"tools": "tools", END: END}
+        )
         graph.add_edge("tools", "agent")
 
         return graph.compile()
@@ -82,16 +85,22 @@ class BotService:
         history: list[Message],
     ) -> str:
         """Run the ReAct agent and return the final assistant message."""
-        lc_messages = []
-        for msg in history:
-            if msg.role == "user":
-                lc_messages.append(HumanMessage(content=msg.content))
-            else:
-                lc_messages.append(AIMessage(content=msg.content))
+        try:
+            lc_messages = []
+            for msg in history:
+                if msg.role == "user":
+                    lc_messages.append(HumanMessage(content=msg.content))
+                else:
+                    lc_messages.append(AIMessage(content=msg.content))
 
-        graph = self._build_graph(conversation_id)
-        result = await graph.ainvoke({"messages": lc_messages})
+            graph = self._build_graph(conversation_id)
+            result = await graph.ainvoke({"messages": lc_messages})
 
-        final = result["messages"][-1]
-        logger.info("Agent finished — %d total messages in trace", len(result["messages"]))
-        return final.content
+            final = result["messages"][-1]
+            logger.info(
+                "Agent finished — %d total messages in trace", len(result["messages"])
+            )
+            return final.content
+        except Exception as e:
+            logger.error("Agent failed for conversation %s: %s", conversation_id, e)
+            return f"Something went wrong: {e}"
