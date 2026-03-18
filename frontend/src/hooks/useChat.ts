@@ -8,11 +8,17 @@ const USER_ID = "default-user";
 export function useChat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messageMap, setMessageMap] = useState<Record<string, Message[]>>({});
   const [loadingConversations, setLoadingConversations] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sending, setSending] = useState(false);
   const [focusTrigger, setFocusTrigger] = useState(0);
+
+  const messages = activeId ? (messageMap[activeId] ?? []) : [];
+
+  function setMsgs(id: string, fn: (prev: Message[]) => Message[]) {
+    setMessageMap((map) => ({ ...map, [id]: fn(map[id] ?? []) }));
+  }
 
   useEffect(() => {
     api
@@ -23,46 +29,57 @@ export function useChat() {
   }, []);
 
   useEffect(() => {
-    if (!activeId) {
-      setMessages([]);
+    if (!activeId) return;
+    if (messageMap[activeId]) {
+      setLoadingMessages(false);
       return;
     }
     let cancelled = false;
     setLoadingMessages(true);
     api
       .getMessages(activeId)
-      .then((msgs) => !cancelled && setMessages(msgs))
-      .catch((err) => !cancelled && console.error("Failed to load messages", err))
+      .then((msgs) => !cancelled && setMsgs(activeId, () => msgs))
+      .catch(
+        (err) => !cancelled && console.error("Failed to load messages", err)
+      )
       .finally(() => !cancelled && setLoadingMessages(false));
-    return () => { cancelled = true; };
-  }, [activeId]);
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId, messageMap]);
 
-  function deselect() {
-    setActiveId(null);
+  function selectConversation(id: string | null) {
+    setActiveId(id);
     setFocusTrigger((n) => n + 1);
   }
 
   async function deleteConversation(id: string) {
     await api.deleteConversation(id);
     setConversations((prev) => prev.filter((c) => c.id !== id));
-    if (activeId === id) deselect();
+    setMessageMap((map) => {
+      const { [id]: _, ...rest } = map;
+      return rest;
+    });
+    if (activeId === id) selectConversation(null);
   }
 
   async function deleteAllConversations() {
     await api.deleteAllConversations(USER_ID);
     setConversations([]);
-    deselect();
+    setMessageMap({});
+    selectConversation(null);
   }
 
   async function clearConversation(id: string) {
     await api.clearConversation(id);
-    if (activeId === id) setMessages([]);
+    setMsgs(id, () => []);
   }
 
   async function send(content: string, files: File[]) {
     try {
       let convId = activeId;
-      const isNew = !convId || !conversations.find((c) => c.id === convId)?.title;
+      const needsTitle =
+        !convId || !conversations.find((c) => c.id === convId)?.title;
 
       if (!convId) {
         const conv = await api.createConversation(USER_ID);
@@ -73,39 +90,59 @@ export function useChat() {
 
       let fileIds: string[] | undefined;
       if (files.length > 0) {
-        const results = await Promise.all(files.map((f) => api.uploadFile(convId!, f)));
-        const ready = results.filter((r) => r.status === "ready").map((r) => r.file_id);
+        const results = await Promise.all(
+          files.map((f) => api.uploadFile(convId!, f))
+        );
+        const ready = results
+          .filter((r) => r.status === "ready")
+          .map((r) => r.file_id);
         if (ready.length > 0) fileIds = ready;
         const failCount = results.length - ready.length;
-        if (failCount > 0) toast.warning(`${failCount} file(s) failed to process`);
+        if (failCount > 0)
+          toast.warning(`${failCount} file(s) failed to process`);
       }
 
       setSending(true);
       const optimisticId = `optimistic-${crypto.randomUUID()}`;
-      setMessages((prev) => [
+      setMsgs(convId!, (prev) => [
         ...prev,
-        { id: optimisticId, conversation_id: convId!, role: "user", content, files: [], created_at: new Date().toISOString() },
+        {
+          id: optimisticId,
+          conversation_id: convId!,
+          role: "user",
+          content,
+          files: [],
+          created_at: new Date().toISOString(),
+        },
       ]);
 
       try {
-        const pair = await api.sendMessage(convId!, { content, user_id: USER_ID, file_ids: fileIds });
-        setMessages((prev) => [
+        const pair = await api.sendMessage(convId!, {
+          content,
+          user_id: USER_ID,
+          file_ids: fileIds,
+        });
+        setMsgs(convId!, (prev) => [
           ...prev.filter((m) => m.id !== optimisticId),
           pair.user_message,
           pair.assistant_message,
         ]);
-        if (isNew) {
+        if (needsTitle) {
           setConversations((prev) =>
-            prev.map((c) => (c.id === convId ? { ...c, title: content.slice(0, 80) } : c)),
+            prev.map((c) =>
+              c.id === convId ? { ...c, title: content.slice(0, 80) } : c
+            )
           );
         }
       } catch {
-        setMessages((prev) => prev.filter((m) => m.id !== optimisticId));
+        setMsgs(convId!, (prev) => prev.filter((m) => m.id !== optimisticId));
       } finally {
         setSending(false);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to send message");
+      toast.error(
+        err instanceof Error ? err.message : "Failed to send message"
+      );
     }
   }
 
@@ -117,7 +154,7 @@ export function useChat() {
     loadingMessages,
     sending,
     focusTrigger,
-    selectConversation: (id: string | null) => { setActiveId(id); if (!id) setFocusTrigger((n) => n + 1); },
+    selectConversation,
     deleteConversation,
     deleteAllConversations,
     clearConversation,
