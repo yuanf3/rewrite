@@ -21,7 +21,6 @@ from services.message_service import MessageService
 async def lifespan(app: FastAPI):
     # Startup
     await db.mongo.connect()
-    await db.mongo.ensure_indexes()
     await db.qdrant.connect()
 
     mongo = db.mongo.get_database()

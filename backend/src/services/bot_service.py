@@ -18,4 +18,4 @@ class BotService:
         retrieval. For now, just echo back a confirmation.
         """
         await asyncio.sleep(1)
-        return "This is a placeholder response."
+        return f"This is a placeholder response to: '{history[-1].content}'"

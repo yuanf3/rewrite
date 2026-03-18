@@ -1,4 +1,4 @@
-"""MongoDB async connection management
+"""MongoDB async connection management.
 
 Uses a module-level client variable initialised by connect() and torn down
 by close(), both called from the FastAPI lifespan.
@@ -21,9 +21,15 @@ def get_database() -> AsyncDatabase:
 
 
 async def connect() -> None:
-    """Create the MongoDB client and verify connectivity."""
+    """Create the MongoDB client and add indexes to the database."""
     global _client
     _client = AsyncMongoClient(settings.mongo_uri)
+
+    # Create required indexes
+    db = get_database()
+    await db.conversations.create_index("user_id")
+    # await db.messages.create_index("conversation_id")
+    await db.messages.create_index([("conversation_id", 1), ("created_at", 1)])
 
 
 async def close() -> None:
@@ -32,11 +38,3 @@ async def close() -> None:
     if _client is not None:
         await _client.close()
         _client = None
-
-
-async def ensure_indexes() -> None:
-    """Create required indexes if they don't already exist."""
-    db = get_database()
-    await db.conversations.create_index("user_id")
-    await db.messages.create_index("conversation_id")
-    await db.messages.create_index([("conversation_id", 1), ("created_at", 1)])

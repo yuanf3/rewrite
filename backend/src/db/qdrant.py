@@ -1,4 +1,4 @@
-"""Qdrant async connection management
+"""Qdrant async connection management.
 
 Uses a module-level client variable initialised by connect() and torn down
 by close(), both called from the FastAPI lifespan.
@@ -21,15 +21,12 @@ def get_client() -> AsyncQdrantClient:
 
 
 async def connect() -> None:
-    """Create the Qdrant client and ensure the collection exists."""
+    """Create the Qdrant client, ensure the collection exists and create index."""
     global _client
     _client = AsyncQdrantClient(url=settings.qdrant_url)
 
-    # Create the file_chunks collection if it doesn't already exist.
-    collections = await _client.get_collections()
-    existing_names = {c.name for c in collections.collections}
-
-    if settings.qdrant_collection not in existing_names:
+    # Create the collection if it doesn't already exist.
+    if not _client.collection_exists(collection_name=settings.qdrant_collection):
         await _client.create_collection(
             collection_name=settings.qdrant_collection,
             vectors_config=VectorParams(
