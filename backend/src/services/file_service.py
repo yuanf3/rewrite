@@ -2,13 +2,14 @@
 
 import asyncio
 import logging
+import shutil
 import uuid
 from pathlib import Path
 
 from fastapi import HTTPException, UploadFile
 from fastembed import TextEmbedding
 from qdrant_client import AsyncQdrantClient
-from qdrant_client.models import PointStruct
+from qdrant_client.models import FieldCondition, Filter, MatchValue, PointStruct
 
 from core.config import settings
 from models.schemas import FileRef, FileUploadResponse
@@ -104,6 +105,12 @@ class FileService:
                 status="failed",
             )
 
+    async def delete_by_conversation(self, conversation_id: str) -> None:
+        """Delete all file records, vectors, and disk files for a conversation."""
+        await self._files.delete_by_conversation(conversation_id)
+        await self._cleanup_vectors(conversation_id)
+        self._cleanup_disk_files(conversation_id)
+
     async def resolve_file_ids(self, file_ids: list[str]) -> list[FileRef]:
         """Resolve file_ids to FileRef objects for message attachment."""
         return await self._files.get_many(file_ids)
@@ -142,3 +149,31 @@ class FileService:
             chunks.append(" ".join(words[start:end]))
             start = end - overlap
         return chunks
+
+    async def _cleanup_vectors(self, conversation_id: str) -> None:
+        try:
+            await self._qdrant.delete(
+                collection_name=settings.qdrant_collection,
+                points_selector=Filter(
+                    must=[
+                        FieldCondition(
+                            key="conversation_id",
+                            match=MatchValue(value=conversation_id),
+                        )
+                    ]
+                ),
+            )
+        except Exception:
+            logger.exception(
+                "Failed to delete vectors for conversation %s", conversation_id
+            )
+
+    def _cleanup_disk_files(self, conversation_id: str) -> None:
+        try:
+            path = Path(settings.upload_dir) / conversation_id
+            if path.exists():
+                shutil.rmtree(path)
+        except Exception:
+            logger.exception(
+                "Failed to delete files for conversation %s", conversation_id
+            )

@@ -39,7 +39,7 @@ async def lifespan(app: FastAPI):
     file_service = FileService(file_repo, qdrant, embedding_model)
 
     app.state.conversation_service = ConversationService(
-        conversation_repo, message_repo, qdrant, file_repo
+        conversation_repo, message_repo, file_service
     )
     app.state.message_service = MessageService(
         message_repo, conversation_repo, bot_service, file_service
