@@ -32,7 +32,7 @@ export default function App() {
           {chat.activeId && (
             <h1 className="truncate font-semibold">
               {chat.conversations.find((c) => c.id === chat.activeId)?.title ??
-                "Conversation"}
+                "New Conversation"}
             </h1>
           )}
         </header>

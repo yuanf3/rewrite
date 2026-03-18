@@ -29,13 +29,16 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_collection: str = "file_chunks"
 
-    # File uploads
-    upload_dir: str = "./uploads"
+    # OpenAI
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
 
     # Embedding
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
-    embedding_batch_size: int = 64
     embedding_dimension: int = 384
+
+    # File uploads
+    upload_dir: str = "./uploads"
 
 
 settings = Settings()

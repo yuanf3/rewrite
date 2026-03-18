@@ -29,13 +29,13 @@ async def lifespan(app: FastAPI):
     conversation_repo = ConversationRepo(mongo)
     message_repo = MessageRepo(mongo)
     file_repo = FileRepo(mongo)
-    bot_service = BotService()
 
     # Load embedding model (downloads on first run)
     from fastembed import TextEmbedding
 
     embedding_model = TextEmbedding(settings.embedding_model)
 
+    bot_service = BotService(qdrant, embedding_model)
     file_service = FileService(file_repo, qdrant, embedding_model)
 
     app.state.conversation_service = ConversationService(
