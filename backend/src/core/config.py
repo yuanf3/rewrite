@@ -37,6 +37,11 @@ class Settings(BaseSettings):
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dimension: int = 384
 
+    # Keycloak
+    keycloak_url: str = "http://localhost:8080"
+    keycloak_realm: str = "chatbot"
+    keycloak_client_id: str = "chatbot-frontend"
+
     # File uploads
     upload_dir: str = "./uploads"
 
