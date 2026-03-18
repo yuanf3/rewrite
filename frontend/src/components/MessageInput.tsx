@@ -76,7 +76,7 @@ export function MessageInput({
           value={value}
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Type a message..."
+          placeholder={disabled ? "Processing..." : "Type a message..."}
           disabled={disabled}
           rows={1}
           className="resize-none"
