@@ -22,7 +22,8 @@ import {
   SidebarMenuSkeleton,
 } from "@/components/ui/sidebar";
 import type { Conversation } from "@/types";
-import { DatabaseZap, Eraser, Plus, Trash2 } from "lucide-react";
+import { useKeycloak } from "@react-keycloak/web";
+import { DatabaseZap, Eraser, LogOut, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 export function AppSidebar({
@@ -46,6 +47,8 @@ export function AppSidebar({
   onDeleteAll: () => Promise<void>;
   sendingIds: Set<string>;
 }) {
+  const { keycloak } = useKeycloak();
+
   return (
     <Sidebar>
       <SidebarHeader className="border-b">
@@ -128,6 +131,14 @@ export function AppSidebar({
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter className="border-t">
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={() => keycloak.logout()}
+        >
+          <LogOut className="size-4" />
+          Log out
+        </Button>
         <Dialog>
           <DialogTrigger asChild>
             <Button

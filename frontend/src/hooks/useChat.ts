@@ -3,8 +3,6 @@ import type { Conversation, Message } from "@/types";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
-const USER_ID = "default-user";
-
 export function useChat() {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
@@ -23,7 +21,7 @@ export function useChat() {
 
   useEffect(() => {
     api
-      .listConversations(USER_ID)
+      .listConversations()
       .then(setConversations)
       .catch(() => toast.error("Failed to load conversations"))
       .finally(() => setLoadingConversations(false));
@@ -64,7 +62,7 @@ export function useChat() {
   }
 
   async function deleteAllConversations() {
-    await api.deleteAllConversations(USER_ID);
+    await api.deleteAllConversations();
     setConversations([]);
     setMessageMap({});
     selectConversation(null);
@@ -82,7 +80,7 @@ export function useChat() {
         !convId || !conversations.find((c) => c.id === convId)?.title;
 
       if (!convId) {
-        const conv = await api.createConversation(USER_ID);
+        const conv = await api.createConversation();
         setConversations((prev) => [conv, ...prev]);
         convId = conv.id;
         setActiveId(convId);
@@ -119,7 +117,6 @@ export function useChat() {
       try {
         const pair = await api.sendMessage(convId!, {
           content,
-          user_id: USER_ID,
           file_ids: fileIds,
         });
         setMsgs(convId!, (prev) => [
