@@ -22,6 +22,9 @@ class ConversationService:
         self._messages = message_repo
         self._file_service = file_service
 
+    async def get(self, conversation_id: str) -> Conversation | None:
+        return await self._conversations.get(conversation_id)
+
     async def create(self, user_id: str) -> Conversation:
         return await self._conversations.create(user_id=user_id)
 

@@ -49,12 +49,6 @@ class FileRef(BaseModel):
 # ---------------------------------------------------------------------------
 
 
-class ConversationCreate(BaseModel):
-    """POST /api/conversations request body."""
-
-    user_id: str
-
-
 class Conversation(MongoModel):
     """Conversation as returned to the client."""
 
@@ -73,7 +67,6 @@ class MessageCreate(BaseModel):
     """POST /api/conversations/{id}/messages request body."""
 
     content: str
-    user_id: str
     file_ids: list[str] | None = None
 
 
