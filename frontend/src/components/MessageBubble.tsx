@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import type { Message } from "@/types";
 import { Check, Copy, Paperclip } from "lucide-react";
 import { useRef, useState } from "react";
+import { toast } from "sonner";
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
@@ -10,10 +11,14 @@ export function MessageBubble({ message }: { message: Message }) {
   const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(message.content);
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setCopied(true);
-    timerRef.current = setTimeout(() => setCopied(false), 1500);
+    try {
+      await navigator.clipboard.writeText(message.content);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      setCopied(true);
+      timerRef.current = setTimeout(() => setCopied(false), 1500);
+    } catch {
+      toast.error("Failed to copy");
+    }
   };
 
   return (

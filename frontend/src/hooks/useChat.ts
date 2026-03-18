@@ -25,7 +25,7 @@ export function useChat() {
     api
       .listConversations(USER_ID)
       .then(setConversations)
-      .catch((err) => console.error("Failed to load conversations", err))
+      .catch(() => toast.error("Failed to load conversations"))
       .finally(() => setLoadingConversations(false));
   }, []);
 
@@ -40,9 +40,7 @@ export function useChat() {
     api
       .getMessages(activeId)
       .then((msgs) => !cancelled && setMsgs(activeId, () => msgs))
-      .catch(
-        (err) => !cancelled && console.error("Failed to load messages", err)
-      )
+      .catch(() => !cancelled && toast.error("Failed to load messages"))
       .finally(() => !cancelled && setLoadingMessages(false));
     return () => {
       cancelled = true;
@@ -136,9 +134,9 @@ export function useChat() {
             )
           );
         }
-      } catch {
+      } catch (err) {
         setMsgs(convId!, (prev) => prev.filter((m) => m.id !== optimisticId));
-        toast.error("Failed to send message");
+        throw err;
       } finally {
         setSendingSet((prev) => {
           const next = new Set(prev);

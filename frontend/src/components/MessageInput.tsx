@@ -22,7 +22,7 @@ export function MessageInput({
 
   useEffect(() => {
     textareaRef.current?.focus();
-  }, [focusTrigger]);
+  }, [disabled, focusTrigger]);
 
   const handleSubmit = () => {
     const trimmed = value.trim();

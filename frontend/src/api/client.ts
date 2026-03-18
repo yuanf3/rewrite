@@ -17,6 +17,13 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
+async function handleVoidResponse(res: Response): Promise<void> {
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.detail ?? `Request failed (${res.status})`);
+  }
+}
+
 export async function createConversation(
   userId: string
 ): Promise<Conversation> {
@@ -39,21 +46,21 @@ export async function deleteAllConversations(userId: string): Promise<void> {
   const res = await fetch(`${BASE}/conversations?user_id=${userId}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error("Failed to delete all conversations");
+  return handleVoidResponse(res);
 }
 
 export async function deleteConversation(id: string): Promise<void> {
   const res = await fetch(`${BASE}/conversations/${id}`, {
     method: "DELETE",
   });
-  if (!res.ok) throw new Error("Failed to delete conversation");
+  return handleVoidResponse(res);
 }
 
 export async function clearConversation(id: string): Promise<void> {
   const res = await fetch(`${BASE}/conversations/${id}/clear`, {
     method: "POST",
   });
-  if (!res.ok) throw new Error("Failed to clear conversation");
+  return handleVoidResponse(res);
 }
 
 export async function getMessages(conversationId: string): Promise<Message[]> {

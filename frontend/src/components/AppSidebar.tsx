@@ -96,7 +96,7 @@ export function AppSidebar({
                             e.stopPropagation();
                             toast.promise(async () => onClear(conv.id), {
                               loading: "Clearing...",
-                              success: "Cleared",
+                              success: "Conversation cleared",
                               error: "Failed to clear conversation",
                             });
                           }}
@@ -112,7 +112,7 @@ export function AppSidebar({
                             e.stopPropagation();
                             toast.promise(async () => onDelete(conv.id), {
                               loading: "Deleting...",
-                              success: "Deleted",
+                              success: "Conversation deleted",
                               error: "Failed to delete conversation",
                             });
                           }}
