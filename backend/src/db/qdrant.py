@@ -26,7 +26,7 @@ async def connect() -> None:
     _client = AsyncQdrantClient(url=settings.qdrant_url)
 
     # Create the collection if it doesn't already exist.
-    if not _client.collection_exists(collection_name=settings.qdrant_collection):
+    if not await _client.collection_exists(collection_name=settings.qdrant_collection):
         await _client.create_collection(
             collection_name=settings.qdrant_collection,
             vectors_config=VectorParams(
