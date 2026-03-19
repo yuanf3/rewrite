@@ -8,7 +8,7 @@ export interface FileUploadResponse {
   status: string;
 }
 
-const BASE = "/api";
+const BASE = "/api"; // import.meta.env.VITE_API_URL;
 
 function authHeaders(): Record<string, string> {
   return { Authorization: `Bearer ${keycloak.token}` };
@@ -77,7 +77,7 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
 
 export async function sendMessage(
   conversationId: string,
-  body: { content: string; file_ids?: string[] },
+  body: { content: string; file_ids?: string[] }
 ): Promise<MessagePair> {
   const res = await fetch(`${BASE}/conversations/${conversationId}/messages`, {
     method: "POST",
@@ -89,7 +89,7 @@ export async function sendMessage(
 
 export async function uploadFile(
   conversationId: string,
-  file: File,
+  file: File
 ): Promise<FileUploadResponse> {
   const form = new FormData();
   form.append("file", file);

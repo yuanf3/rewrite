@@ -4,11 +4,13 @@ from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+ENV_FILE = Path(__file__).resolve().parent.parent.parent.parent / ".env"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=ENV_FILE, env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=ENV_FILE, env_file_encoding="utf-8", extra="ignore"
+    )
 
     # Server
     api_host: str = "localhost"
@@ -17,6 +19,11 @@ class Settings(BaseSettings):
 
     # CORS
     cors_origins: list[str] = []
+
+    # Keycloak
+    keycloak_url: str = "http://localhost:8080"
+    keycloak_realm: str = "chatbot"
+    keycloak_client_id: str = "chatbot-frontend"
 
     # MongoDB
     mongo_username: str = "admin"
@@ -36,11 +43,6 @@ class Settings(BaseSettings):
     # Embedding
     embedding_model: str = "sentence-transformers/all-MiniLM-L6-v2"
     embedding_dimension: int = 384
-
-    # Keycloak
-    keycloak_url: str = "http://localhost:8080"
-    keycloak_realm: str = "chatbot"
-    keycloak_client_id: str = "chatbot-frontend"
 
     # File uploads
     upload_dir: str = "./uploads"
