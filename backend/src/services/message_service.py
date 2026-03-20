@@ -1,8 +1,9 @@
 """Business logic for sending and listing messages."""
 
+from collections.abc import AsyncGenerator
 from datetime import datetime
 
-from models.schemas import Message
+from models.schemas import Message, ToolStep
 from repositories.conversation_repo import ConversationRepo
 from repositories.message_repo import MessageRepo
 from services.bot_service import BotService
@@ -24,13 +25,13 @@ class MessageService:
         self._bot = bot_service
         self._files = file_service
 
-    async def send(
+    async def send_stream(
         self,
         conversation_id: str,
         content: str,
         file_ids: list[str] | None = None,
-    ) -> tuple[Message, Message]:
-        """Persist a user message, generate a bot reply, and return both."""
+    ) -> AsyncGenerator[ToolStep | tuple[Message, Message], None]:
+        """Stream tool steps, then yield the final (user_msg, assistant_msg) tuple."""
         files = []
         if file_ids:
             files = await self._files.resolve_file_ids(file_ids)
@@ -46,18 +47,27 @@ class MessageService:
         await self._conversations.touch(conversation_id)
 
         history = await self._messages.find_by_conversation(conversation_id)
-        assistant_content = await self._bot.generate_response(
+        collected_steps: list[ToolStep] = []
+        assistant_content = ""
+
+        async for item in self._bot.generate_response_stream(
             conversation_id=conversation_id,
             history=history,
-        )
+        ):
+            if isinstance(item, ToolStep):
+                collected_steps.append(item)
+                yield item
+            else:
+                assistant_content = item
 
         assistant_msg = await self._messages.create(
             conversation_id=conversation_id,
             role="assistant",
             content=assistant_content,
+            steps=collected_steps,
         )
 
-        return user_msg, assistant_msg
+        yield user_msg, assistant_msg
 
     async def list(
         self,
