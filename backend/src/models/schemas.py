@@ -70,6 +70,14 @@ class MessageCreate(BaseModel):
     file_ids: list[str] | None = None
 
 
+class ToolStep(BaseModel):
+    """A single tool invocation performed by the agent."""
+
+    tool_name: str
+    tool_input: dict
+    result: str
+
+
 class Message(MongoModel):
     """Message as returned to the client."""
 
@@ -77,14 +85,8 @@ class Message(MongoModel):
     role: Literal["user", "assistant"]
     content: str
     files: list[FileRef] = Field(default_factory=list)
+    steps: list[ToolStep] = Field(default_factory=list)
     created_at: datetime
-
-
-class MessagePair(BaseModel):
-    """Response from the send-message endpoint."""
-
-    user_message: Message
-    assistant_message: Message
 
 
 # ---------------------------------------------------------------------------
