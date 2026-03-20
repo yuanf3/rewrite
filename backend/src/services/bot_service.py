@@ -1,6 +1,7 @@
 """Bot service — LangGraph ReAct agent with RAG retrieval and tool calling."""
 
 import asyncio
+from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 
 from fastembed import TextEmbedding
@@ -12,7 +13,7 @@ from qdrant_client import AsyncQdrantClient
 
 from core.config import settings
 from core.logging import logger
-from models.schemas import Message
+from models.schemas import Message, ToolStep
 
 
 class BotService:
@@ -79,12 +80,12 @@ class BotService:
 
         return graph.compile()
 
-    async def generate_response(
+    async def generate_response_stream(
         self,
         conversation_id: str,
         history: list[Message],
-    ) -> str:
-        """Run the ReAct agent and return the final assistant message."""
+    ) -> AsyncGenerator[ToolStep | str, None]:
+        """Stream agent execution, yielding ToolSteps then a final content string."""
         try:
             lc_messages = []
             for msg in history:
@@ -94,13 +95,33 @@ class BotService:
                     lc_messages.append(AIMessage(content=msg.content))
 
             graph = self._build_graph(conversation_id)
-            result = await graph.ainvoke({"messages": lc_messages})
+            pending_tool_calls: dict[str, dict] = {}
 
-            final = result["messages"][-1]
-            logger.info(
-                "Agent finished — %d total messages in trace", len(result["messages"])
-            )
-            return final.content
+            async for chunk in graph.astream(
+                {"messages": lc_messages}, stream_mode="updates"
+            ):
+                for node_name, update in chunk.items():
+                    msgs = update.get("messages", [])
+                    for m in msgs:
+                        if isinstance(m, AIMessage) and m.tool_calls:
+                            for tc in m.tool_calls:
+                                pending_tool_calls[tc["id"]] = {
+                                    "tool_name": tc["name"],
+                                    "tool_input": tc["args"],
+                                }
+                        elif hasattr(m, "tool_call_id") and m.tool_call_id:
+                            tc_info = pending_tool_calls.pop(m.tool_call_id, None)
+                            if tc_info:
+                                yield ToolStep(
+                                    tool_name=tc_info["tool_name"],
+                                    tool_input=tc_info["tool_input"],
+                                    result=m.content
+                                    if isinstance(m.content, str)
+                                    else str(m.content),
+                                )
+                        elif isinstance(m, AIMessage) and not m.tool_calls:
+                            logger.info("Agent finished for conversation %s", conversation_id)
+                            yield m.content
         except Exception as e:
             logger.error("Agent failed for conversation %s: %s", conversation_id, e)
-            return f"Something went wrong: {e}"
+            yield f"Something went wrong: {e}"
