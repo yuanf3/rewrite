@@ -4,6 +4,7 @@ import type { Message } from "@/types";
 import { Check, Copy, Paperclip } from "lucide-react";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { StepList } from "./StepList";
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === "user";
@@ -25,6 +26,9 @@ export function MessageBubble({ message }: { message: Message }) {
     <div
       className={`group/msg flex w-full min-w-0 flex-col ${isUser ? "items-end" : "items-start"}`}
     >
+      {!isUser && message.steps?.length > 0 && (
+        <StepList steps={message.steps} collapsible />
+      )}
       <div
         className={
           isUser
