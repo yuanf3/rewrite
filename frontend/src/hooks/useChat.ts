@@ -1,5 +1,5 @@
 import * as api from "@/api/client";
-import type { Conversation, Message } from "@/types";
+import type { Conversation, Message, ToolStep } from "@/types";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
@@ -11,9 +11,11 @@ export function useChat() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingSet, setSendingSet] = useState<Set<string>>(new Set());
   const [focusTrigger, setFocusTrigger] = useState(0);
+  const [stepsMap, setStepsMap] = useState<Record<string, ToolStep[]>>({});
 
   const messages = activeId ? (messageMap[activeId] ?? []) : [];
   const sending = activeId ? sendingSet.has(activeId) : false;
+  const activeSteps = activeId ? (stepsMap[activeId] ?? []) : [];
 
   function setMsgs(id: string, fn: (prev: Message[]) => Message[]) {
     setMessageMap((map) => ({ ...map, [id]: fn(map[id] ?? []) }));
@@ -89,7 +91,7 @@ export function useChat() {
       let fileIds: string[] | undefined;
       if (files.length > 0) {
         const results = await Promise.all(
-          files.map((f) => api.uploadFile(convId!, f))
+          files.map((f) => api.uploadFile(convId!, f)),
         );
         const ready = results
           .filter((r) => r.status === "ready")
@@ -110,40 +112,77 @@ export function useChat() {
           role: "user",
           content,
           files: [],
+          steps: [],
           created_at: new Date().toISOString(),
         },
       ]);
 
+      const streamConvId = convId;
       try {
-        const pair = await api.sendMessage(convId!, {
-          content,
-          file_ids: fileIds,
-        });
-        setMsgs(convId!, (prev) => [
-          ...prev.filter((m) => m.id !== optimisticId),
-          pair.user_message,
-          pair.assistant_message,
-        ]);
-        if (needsTitle) {
-          setConversations((prev) =>
-            prev.map((c) =>
-              c.id === convId ? { ...c, title: content.slice(0, 80) } : c
-            )
-          );
-        }
+        await api.sendMessageStream(
+          streamConvId,
+          { content, file_ids: fileIds },
+          {
+            onStep(step) {
+              setStepsMap((prev) => ({
+                ...prev,
+                [streamConvId]: [...(prev[streamConvId] ?? []), step],
+              }));
+            },
+            onDone(pair) {
+              setMsgs(streamConvId, (prev) => [
+                ...prev.filter((m) => m.id !== optimisticId),
+                pair.user_message,
+                pair.assistant_message,
+              ]);
+              setStepsMap((prev) => {
+                const next = { ...prev };
+                delete next[streamConvId];
+                return next;
+              });
+              if (needsTitle) {
+                setConversations((prev) =>
+                  prev.map((c) =>
+                    c.id === streamConvId
+                      ? { ...c, title: content.slice(0, 80) }
+                      : c,
+                  ),
+                );
+              }
+            },
+            onError(detail) {
+              setMsgs(streamConvId, (prev) =>
+                prev.filter((m) => m.id !== optimisticId),
+              );
+              setStepsMap((prev) => {
+                const next = { ...prev };
+                delete next[streamConvId];
+                return next;
+              });
+              toast.error(detail);
+            },
+          },
+        );
       } catch (err) {
-        setMsgs(convId!, (prev) => prev.filter((m) => m.id !== optimisticId));
+        setMsgs(streamConvId, (prev) =>
+          prev.filter((m) => m.id !== optimisticId),
+        );
+        setStepsMap((prev) => {
+          const next = { ...prev };
+          delete next[streamConvId];
+          return next;
+        });
         throw err;
       } finally {
         setSendingSet((prev) => {
           const next = new Set(prev);
-          next.delete(convId!);
+          next.delete(streamConvId);
           return next;
         });
       }
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Failed to send message"
+        err instanceof Error ? err.message : "Failed to send message",
       );
     }
   }
@@ -157,6 +196,7 @@ export function useChat() {
     sending,
     sendingIds: sendingSet,
     focusTrigger,
+    activeSteps,
     selectConversation,
     deleteConversation,
     deleteAllConversations,
