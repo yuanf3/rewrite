@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 
 from pymongo.asynchronous.database import AsyncDatabase
 
-from models.schemas import FileRef, Message
+from models.schemas import FileRef, Message, ToolStep
 
 
 class MessageRepo:
@@ -20,6 +20,7 @@ class MessageRepo:
         role: str,
         content: str,
         files: list[FileRef] | None = None,
+        steps: list[ToolStep] | None = None,
     ) -> Message:
         """Insert a new message and return it."""
         doc = {
@@ -27,6 +28,7 @@ class MessageRepo:
             "role": role,
             "content": content,
             "files": [f.model_dump() for f in (files or [])],
+            "steps": [s.model_dump() for s in (steps or [])],
             "created_at": datetime.now(timezone.utc),
         }
         result = await self._col.insert_one(doc)
