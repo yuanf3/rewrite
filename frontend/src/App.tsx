@@ -42,6 +42,7 @@ export default function App() {
               messages={chat.messages}
               loading={chat.loadingMessages}
               sending={chat.sending}
+              activeSteps={chat.activeSteps}
             />
           ) : (
             <WelcomeScreen />

@@ -1,18 +1,21 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { Message } from "@/types";
+import type { Message, ToolStep } from "@/types";
 import { useEffect, useRef, useState } from "react";
 import { MessageBubble } from "./MessageBubble";
+import { StepList } from "./StepList";
 import { TypingIndicator } from "./TypingIndicator";
 
 export function ChatArea({
   messages,
   loading,
   sending,
+  activeSteps,
 }: {
   messages: Message[];
   loading: boolean;
   sending: boolean;
+  activeSteps: ToolStep[];
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -25,7 +28,7 @@ export function ChatArea({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, activeSteps]);
 
   if (showSkeleton) {
     return (
@@ -43,6 +46,7 @@ export function ChatArea({
         {messages.map((msg) => (
           <MessageBubble key={msg.id} message={msg} />
         ))}
+        {sending && activeSteps.length > 0 && <StepList steps={activeSteps} />}
         {sending && <TypingIndicator />}
         <div ref={bottomRef} />
       </div>
