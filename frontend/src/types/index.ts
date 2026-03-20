@@ -12,16 +12,18 @@ export interface FileRef {
   content_type: string;
 }
 
+export interface ToolStep {
+  tool_name: string;
+  tool_input: Record<string, unknown>;
+  result: string;
+}
+
 export interface Message {
   id: string;
   conversation_id: string;
   role: "user" | "assistant";
   content: string;
   files: FileRef[];
+  steps: ToolStep[];
   created_at: string;
-}
-
-export interface MessagePair {
-  user_message: Message;
-  assistant_message: Message;
 }
