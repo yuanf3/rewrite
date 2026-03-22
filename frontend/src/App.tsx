@@ -1,3 +1,4 @@
+import * as api from "@/api/client";
 import { AppSidebar } from "@/components/AppSidebar";
 import { ChatArea } from "@/components/ChatArea";
 import { MessageInput } from "@/components/MessageInput";
@@ -8,49 +9,88 @@ import {
 } from "@/components/ui/sidebar";
 import { Toaster } from "@/components/ui/sonner";
 import { WelcomeScreen } from "@/components/WelcomeScreen";
-import { useChat } from "@/hooks/useChat";
+import { useConversations } from "@/hooks/useConversations";
+import { useMessages } from "@/hooks/useMessages";
 
 export default function App() {
-  const chat = useChat();
+  const convos = useConversations();
+  const msgs = useMessages(convos.activeId);
+
+  async function handleSend(content: string, files: File[]) {
+    let convId = convos.activeId;
+    const needsTitle =
+      !convId || !convos.conversations.find((c) => c.id === convId)?.title;
+
+    if (!convId) {
+      const conv = await api.createConversation();
+      convos.addConversation(conv);
+      convos.selectConversation(conv.id);
+      convId = conv.id;
+    }
+
+    await msgs.send(
+      convId,
+      content,
+      files,
+      needsTitle
+        ? () => convos.updateTitle(convId!, content.slice(0, 80))
+        : undefined
+    );
+  }
+
+  async function handleDelete(id: string) {
+    await convos.deleteConversation(id);
+    msgs.dropMessages(id);
+  }
+
+  async function handleDeleteAll() {
+    await convos.deleteAllConversations();
+    msgs.clearAll();
+  }
+
+  async function handleClear(id: string) {
+    await api.clearConversation(id);
+    msgs.dropMessages(id);
+  }
 
   return (
     <SidebarProvider className="h-svh !min-h-0">
       <AppSidebar
-        conversations={chat.conversations}
-        loading={chat.loadingConversations}
-        activeId={chat.activeId}
-        onSelect={chat.selectConversation}
-        onNew={() => chat.selectConversation(null)}
-        onDelete={chat.deleteConversation}
-        onClear={chat.clearConversation}
-        onDeleteAll={chat.deleteAllConversations}
-        sendingIds={chat.sendingIds}
+        conversations={convos.conversations}
+        loading={convos.loading}
+        activeId={convos.activeId}
+        onSelect={convos.selectConversation}
+        onNew={() => convos.selectConversation(null)}
+        onDelete={handleDelete}
+        onClear={handleClear}
+        onDeleteAll={handleDeleteAll}
+        sendingIds={msgs.sendingIds}
       />
       <SidebarInset>
         <header className="flex h-12 items-center gap-2 border-b px-4">
           <SidebarTrigger />
-          {chat.activeId && (
+          {convos.activeId && (
             <h1 className="truncate font-semibold">
-              {chat.conversations.find((c) => c.id === chat.activeId)?.title ??
-                "New Conversation"}
+              {convos.conversations.find((c) => c.id === convos.activeId)
+                ?.title ?? "New Conversation"}
             </h1>
           )}
         </header>
         <div className="flex flex-1 flex-col overflow-hidden">
-          {chat.activeId ? (
+          {convos.activeId ? (
             <ChatArea
-              messages={chat.messages}
-              loading={chat.loadingMessages}
-              sending={chat.sending}
-              activeSteps={chat.activeSteps}
+              messages={msgs.messages}
+              loading={msgs.loadingMessages}
+              sending={msgs.sending}
+              activeSteps={msgs.activeSteps}
             />
           ) : (
             <WelcomeScreen />
           )}
           <MessageInput
-            onSend={chat.send}
-            disabled={chat.sending}
-            focusTrigger={chat.focusTrigger}
+            onSend={handleSend}
+            disabled={msgs.sending}
+            focusTrigger={convos.focusTrigger}
           />
         </div>
       </SidebarInset>

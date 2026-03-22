@@ -84,7 +84,7 @@ export async function getMessages(conversationId: string): Promise<Message[]> {
 export async function sendMessageStream(
   conversationId: string,
   body: { content: string; file_ids?: string[] },
-  callbacks: StreamCallbacks,
+  callbacks: StreamCallbacks
 ): Promise<void> {
   const res = await fetch(`${BASE}/conversations/${conversationId}/messages`, {
     method: "POST",
@@ -126,7 +126,7 @@ export async function sendMessageStream(
 
 export async function uploadFile(
   conversationId: string,
-  file: File,
+  file: File
 ): Promise<FileUploadResponse> {
   const form = new FormData();
   form.append("file", file);

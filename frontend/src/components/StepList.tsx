@@ -18,7 +18,7 @@ function StepItem({ step }: { step: ToolStep }) {
           {truncate(JSON.stringify(step.tool_input))}
         </span>
         {step.result && (
-          <p className="mt-0.5 truncate text-muted-foreground/70">
+          <p className="mt-0.5 text-muted-foreground/70">
             → {truncate(step.result)}
           </p>
         )}
