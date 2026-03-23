@@ -83,6 +83,7 @@ export default function App() {
               loading={msgs.loadingMessages}
               sending={msgs.sending}
               activeSteps={msgs.activeSteps}
+              streamingContent={msgs.streamingContent}
             />
           ) : (
             <WelcomeScreen />

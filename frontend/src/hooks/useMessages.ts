@@ -1,6 +1,6 @@
 import * as api from "@/api/client";
 import type { Message, ToolStep } from "@/types";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 export function useMessages(activeId: string | null) {
@@ -8,11 +8,17 @@ export function useMessages(activeId: string | null) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingSet, setSendingSet] = useState<Set<string>>(new Set());
   const [stepsMap, setStepsMap] = useState<Record<string, ToolStep[]>>({});
+  const [streamingContentMap, setStreamingContentMap] = useState<
+    Record<string, string>
+  >({});
   const loadedRef = useRef<Set<string>>(new Set());
 
   const messages = activeId ? (messageMap[activeId] ?? []) : [];
   const sending = activeId ? sendingSet.has(activeId) : false;
   const activeSteps = activeId ? (stepsMap[activeId] ?? []) : [];
+  const streamingContent = activeId
+    ? (streamingContentMap[activeId] ?? "")
+    : "";
 
   function setMsgs(id: string, fn: (prev: Message[]) => Message[]) {
     setMessageMap((map) => ({ ...map, [id]: fn(map[id] ?? []) }));
@@ -53,6 +59,28 @@ export function useMessages(activeId: string | null) {
     loadedRef.current.clear();
     setMessageMap({});
   }
+
+  // Use a ref to accumulate streaming content to avoid stale closures
+  const streamingContentRef = useRef<Record<string, string>>({});
+
+  const appendStreamingContent = useCallback(
+    (convId: string, token: string) => {
+      const current = streamingContentRef.current[convId] ?? "";
+      const updated = current + token;
+      streamingContentRef.current[convId] = updated;
+      setStreamingContentMap((prev) => ({ ...prev, [convId]: updated }));
+    },
+    []
+  );
+
+  const clearStreamingContent = useCallback((convId: string) => {
+    delete streamingContentRef.current[convId];
+    setStreamingContentMap((prev) => {
+      const next = { ...prev };
+      delete next[convId];
+      return next;
+    });
+  }, []);
 
   async function send(
     convId: string,
@@ -104,6 +132,9 @@ export function useMessages(activeId: string | null) {
                 [convId]: [...(prev[convId] ?? []), step],
               }));
             },
+            onToken(token) {
+              appendStreamingContent(convId, token);
+            },
             onDone(pair) {
               setMsgs(convId, (prev) => [
                 ...prev.filter((m) => m.id !== optimisticId),
@@ -115,6 +146,7 @@ export function useMessages(activeId: string | null) {
                 delete next[convId];
                 return next;
               });
+              clearStreamingContent(convId);
               onComplete?.();
             },
             onError(detail) {
@@ -126,6 +158,7 @@ export function useMessages(activeId: string | null) {
                 delete next[convId];
                 return next;
               });
+              clearStreamingContent(convId);
               toast.error(detail);
             },
           }
@@ -137,6 +170,7 @@ export function useMessages(activeId: string | null) {
           delete next[convId];
           return next;
         });
+        clearStreamingContent(convId);
         throw err;
       } finally {
         setSendingSet((prev) => {
@@ -158,6 +192,7 @@ export function useMessages(activeId: string | null) {
     sending,
     sendingIds: sendingSet,
     activeSteps,
+    streamingContent,
     send,
     dropMessages,
     clearAll,

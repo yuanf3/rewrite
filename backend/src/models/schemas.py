@@ -78,6 +78,12 @@ class ToolStep(BaseModel):
     result: str
 
 
+class TokenChunk(BaseModel):
+    """A single streamed token from the assistant response."""
+
+    content: str
+
+
 class Message(MongoModel):
     """Message as returned to the client."""
 

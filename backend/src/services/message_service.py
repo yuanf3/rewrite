@@ -3,7 +3,7 @@
 from collections.abc import AsyncGenerator
 from datetime import datetime
 
-from models.schemas import Message, ToolStep
+from models.schemas import Message, TokenChunk, ToolStep
 from repositories.conversation_repo import ConversationRepo
 from repositories.message_repo import MessageRepo
 from services.bot_service import BotService
@@ -30,8 +30,8 @@ class MessageService:
         conversation_id: str,
         content: str,
         file_ids: list[str] | None = None,
-    ) -> AsyncGenerator[ToolStep | tuple[Message, Message], None]:
-        """Stream tool steps, then yield the final (user_msg, assistant_msg) tuple."""
+    ) -> AsyncGenerator[ToolStep | TokenChunk | tuple[Message, Message], None]:
+        """Stream tool steps and token chunks, then yield the final (user_msg, assistant_msg) tuple."""
         files = []
         if file_ids:
             files = await self._files.resolve_file_ids(file_ids)
@@ -48,7 +48,7 @@ class MessageService:
 
         history = await self._messages.find_by_conversation(conversation_id)
         collected_steps: list[ToolStep] = []
-        assistant_content = ""
+        content_parts: list[str] = []
 
         async for item in self._bot.generate_response_stream(
             conversation_id=conversation_id,
@@ -58,12 +58,13 @@ class MessageService:
                 collected_steps.append(item)
                 yield item
             else:
-                assistant_content = item
+                content_parts.append(item.content)
+                yield item
 
         assistant_msg = await self._messages.create(
             conversation_id=conversation_id,
             role="assistant",
-            content=assistant_content,
+            content="".join(content_parts),
             steps=collected_steps,
         )
 

@@ -5,7 +5,7 @@ from collections.abc import AsyncGenerator
 from datetime import UTC, datetime
 
 from fastembed import TextEmbedding
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, AIMessageChunk, HumanMessage
 from langchain_openai import ChatOpenAI
 from langgraph.graph import END, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode
@@ -13,7 +13,7 @@ from qdrant_client import AsyncQdrantClient
 
 from core.config import settings
 from core.logging import logger
-from models.schemas import Message, ToolStep
+from models.schemas import Message, TokenChunk, ToolStep
 
 
 class BotService:
@@ -84,8 +84,8 @@ class BotService:
         self,
         conversation_id: str,
         history: list[Message],
-    ) -> AsyncGenerator[ToolStep | str, None]:
-        """Stream agent execution, yielding ToolSteps then a final content string."""
+    ) -> AsyncGenerator[ToolStep | TokenChunk, None]:
+        """Stream agent execution, yielding ToolSteps and TokenChunks."""
         try:
             lc_messages = []
             for msg in history:
@@ -97,31 +97,40 @@ class BotService:
             graph = self._build_graph(conversation_id)
             pending_tool_calls: dict[str, dict] = {}
 
-            async for chunk in graph.astream(
-                {"messages": lc_messages}, stream_mode="updates"
+            async for mode, chunk in graph.astream(
+                {"messages": lc_messages}, stream_mode=["updates", "messages"]
             ):
-                for node_name, update in chunk.items():
-                    msgs = update.get("messages", [])
-                    for m in msgs:
-                        if isinstance(m, AIMessage) and m.tool_calls:
-                            for tc in m.tool_calls:
-                                pending_tool_calls[tc["id"]] = {
-                                    "tool_name": tc["name"],
-                                    "tool_input": tc["args"],
-                                }
-                        elif hasattr(m, "tool_call_id") and m.tool_call_id:
-                            tc_info = pending_tool_calls.pop(m.tool_call_id, None)
-                            if tc_info:
-                                yield ToolStep(
-                                    tool_name=tc_info["tool_name"],
-                                    tool_input=tc_info["tool_input"],
-                                    result=m.content
-                                    if isinstance(m.content, str)
-                                    else str(m.content),
-                                )
-                        elif isinstance(m, AIMessage) and not m.tool_calls:
-                            logger.info("Agent finished for conversation %s", conversation_id)
-                            yield m.content
+                if mode == "updates":
+                    for _node_name, update in chunk.items():
+                        msgs = update.get("messages", [])
+                        for m in msgs:
+                            if isinstance(m, AIMessage) and m.tool_calls:
+                                for tc in m.tool_calls:
+                                    pending_tool_calls[tc["id"]] = {
+                                        "tool_name": tc["name"],
+                                        "tool_input": tc["args"],
+                                    }
+                            elif hasattr(m, "tool_call_id") and m.tool_call_id:
+                                tc_info = pending_tool_calls.pop(m.tool_call_id, None)
+                                if tc_info:
+                                    yield ToolStep(
+                                        tool_name=tc_info["tool_name"],
+                                        tool_input=tc_info["tool_input"],
+                                        result=m.content
+                                        if isinstance(m.content, str)
+                                        else str(m.content),
+                                    )
+
+                elif mode == "messages":
+                    msg_chunk, _metadata = chunk
+                    if (
+                        isinstance(msg_chunk, AIMessageChunk)
+                        and msg_chunk.content
+                        and not msg_chunk.tool_call_chunks
+                    ):
+                        yield TokenChunk(content=msg_chunk.content)
+
+            logger.info("Agent finished for conversation %s", conversation_id)
         except Exception as e:
             logger.error("Agent failed for conversation %s: %s", conversation_id, e)
-            yield f"Something went wrong: {e}"
+            yield TokenChunk(content=f"Something went wrong: {e}")

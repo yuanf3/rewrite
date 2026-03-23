@@ -11,11 +11,13 @@ export function ChatArea({
   loading,
   sending,
   activeSteps,
+  streamingContent,
 }: {
   messages: Message[];
   loading: boolean;
   sending: boolean;
   activeSteps: ToolStep[];
+  streamingContent: string;
 }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [showSkeleton, setShowSkeleton] = useState(false);
@@ -28,7 +30,7 @@ export function ChatArea({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, activeSteps]);
+  }, [messages, activeSteps, streamingContent]);
 
   if (showSkeleton) {
     return (
@@ -47,7 +49,17 @@ export function ChatArea({
           <MessageBubble key={msg.id} message={msg} />
         ))}
         {sending && activeSteps.length > 0 && <StepList steps={activeSteps} />}
-        {sending && <TypingIndicator />}
+        {sending && streamingContent ? (
+          <div className="flex w-full min-w-0 flex-col items-start">
+            <div className="max-w-[75%] min-w-0 rounded-lg bg-muted px-4 py-2">
+              <p className="break-words whitespace-pre-wrap">
+                {streamingContent}
+              </p>
+            </div>
+          </div>
+        ) : (
+          sending && <TypingIndicator />
+        )}
         <div ref={bottomRef} />
       </div>
     </ScrollArea>

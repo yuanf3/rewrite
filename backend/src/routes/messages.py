@@ -13,7 +13,7 @@ from dependencies import (
     get_message_service,
     verify_conversation_ownership,
 )
-from models.schemas import Message, MessageCreate, ToolStep
+from models.schemas import Message, MessageCreate, TokenChunk, ToolStep
 from services.conversation_service import ConversationService
 from services.message_service import MessageService
 
@@ -54,12 +54,19 @@ async def send_message(
             ):
                 if isinstance(item, ToolStep):
                     yield f"event: step\ndata: {item.model_dump_json()}\n\n"
+                elif isinstance(item, TokenChunk):
+                    yield f"event: token\ndata: {item.model_dump_json()}\n\n"
                 else:
                     user_msg, assistant_msg = item
-                    payload = json.dumps({
-                        "user_message": user_msg.model_dump(by_alias=True),
-                        "assistant_message": assistant_msg.model_dump(by_alias=True),
-                    }, default=str)
+                    payload = json.dumps(
+                        {
+                            "user_message": user_msg.model_dump(by_alias=True),
+                            "assistant_message": assistant_msg.model_dump(
+                                by_alias=True
+                            ),
+                        },
+                        default=str,
+                    )
                     yield f"event: done\ndata: {payload}\n\n"
         except Exception as e:
             logger.error("SSE stream error: %s", e)

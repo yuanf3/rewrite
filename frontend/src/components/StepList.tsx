@@ -19,7 +19,7 @@ function StepItem({ step }: { step: ToolStep }) {
         </span>
         {step.result && (
           <p className="mt-0.5 text-muted-foreground/70">
-            → {truncate(step.result)}
+            {truncate(step.result)}
           </p>
         )}
       </div>

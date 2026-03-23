@@ -10,6 +10,7 @@ export interface FileUploadResponse {
 
 export interface StreamCallbacks {
   onStep: (step: ToolStep) => void;
+  onToken: (content: string) => void;
   onDone: (pair: { user_message: Message; assistant_message: Message }) => void;
   onError: (detail: string) => void;
 }
@@ -116,6 +117,7 @@ export async function sendMessageStream(
       } else if (line.startsWith("data: ") && currentEvent) {
         const data = JSON.parse(line.slice(6));
         if (currentEvent === "step") callbacks.onStep(data);
+        else if (currentEvent === "token") callbacks.onToken(data.content);
         else if (currentEvent === "done") callbacks.onDone(data);
         else if (currentEvent === "error") callbacks.onError(data.detail);
         currentEvent = "";
